@@ -1,0 +1,146 @@
+cis practical 8 Devanagari Character Classification using Random Forest
+
+Cell 1 — Import libraries
+
+import cv2
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+
+
+Cell 2 — Set dataset paths
+
+
+train_path = r"C:\Users\hp\Downloads\devanagari+handwritten+character+dataset (1)\DevanagariHandwrittenCharacterDataset\Train"
+
+test_path = r"C:\Users\hp\Downloads\devanagari+handwritten+character+dataset (1)\DevanagariHandwrittenCharacterDataset\Test"
+
+classes = sorted([c for c in os.listdir(train_path)
+                  if os.path.isdir(os.path.join(train_path, c))])
+
+
+Cell 3 — Load training and testing images
+
+X_train, y_train = [], []
+
+for c in classes:
+    folder = os.path.join(train_path, c)
+
+    for file in os.listdir(folder)[:100]:
+        img = cv2.imread(os.path.join(folder, file), 0)
+
+        if img is not None:
+            img = cv2.resize(img, (32, 32))
+            X_train.append(img.flatten())
+            y_train.append(c)
+
+X_train = np.array(X_train)
+y_train = np.array(y_train)
+
+
+X_test, y_test = [], []
+
+for c in classes:
+    folder = os.path.join(test_path, c)
+
+    for file in os.listdir(folder)[:100]:
+        img = cv2.imread(os.path.join(folder, file), 0)
+
+        if img is not None:
+            img = cv2.resize(img, (32, 32))
+            X_test.append(img.flatten())
+            y_test.append(c)
+
+X_test = np.array(X_test)
+y_test = np.array(y_test)
+
+print("Training:", X_train.shape)
+print("Testing:", X_test.shape)
+
+
+Cell 4 — Normalize pixel values
+
+X_train = X_train / 255.0
+X_test = X_test / 255.0
+
+
+Cell 5 — Create and train the Random Forest model
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+print("Random Forest Model Trained")
+
+
+Cell 6 — Predict characters
+
+prediction = model.predict(X_test)
+
+print("Actual:", y_test[:10])
+print("Predicted:", prediction[:10])
+
+
+Cell 7 — Calculate accuracy
+
+print("Accuracy:", accuracy_score(y_test, prediction))
+
+
+Cell 8 — Display classification report
+
+print(classification_report(y_test, prediction, zero_division=0))
+
+
+Cell 9 — Generate confusion matrix
+
+cm = confusion_matrix(y_test, prediction, labels=classes)
+print(cm)
+
+
+Cell 10 — Visualize the confusion matrix
+
+plt.figure(figsize=(8, 6))
+plt.imshow(cm)
+plt.title("Random Forest Confusion Matrix")
+plt.xlabel("Predicted Character")
+plt.ylabel("Actual Character")
+plt.colorbar()
+plt.show()
+
+
+Cell 11 — Predict a new character image
+
+folder = os.path.join(test_path, classes[0])
+file = os.listdir(folder)[0]
+img_path = os.path.join(folder, file)
+
+img = cv2.imread(img_path, 0)
+img = cv2.resize(img, (32, 32))
+img = img.flatten().reshape(1, -1) / 255.0
+
+result = model.predict(img)
+print("Predicted Character:", result[0])
+
+
+
+Cell 12 — Compare the number of trees with accuracy
+
+trees = [10, 20, 40, 60, 80, 100]
+scores = []
+
+for n in trees:
+    model = RandomForestClassifier(n_estimators=n, random_state=42)
+    model.fit(X_train, y_train)
+    prediction = model.predict(X_test)
+    scores.append(accuracy_score(y_test, prediction))
+
+plt.plot(trees, scores, marker="o")
+plt.title("Number of Trees vs Accuracy")
+plt.xlabel("Number of Trees")
+plt.ylabel("Accuracy")
+plt.grid()
+plt.show()
+
